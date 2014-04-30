@@ -1,0 +1,8 @@
+STRINGTABLE OSCClientObject {
+	OSCClientObject "OSC Client Object";
+
+	Address "Address";
+	Port "Port";
+	Enabled "Enabled";
+	OSCClientObjectSettings "Settings";
+}
