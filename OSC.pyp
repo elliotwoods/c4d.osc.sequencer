@@ -5,7 +5,8 @@ import sys
 import random
 import time
 
-import SimpleOSC
+from SimpleOSC import *
+from OSC import *
 
 from c4d import gui, plugins, bitmaps
 
@@ -16,12 +17,25 @@ VAR_Resolution = 1103
 VAR_Address = 1002
 VAR_Port = 1003
 
-class OSCClientObject(c4d.plugins.ObjectData):
+def AppendPoint(msg, spline, transform, x):
+	point = spline.GetSplinePoint(x) * transform / 100.0
+	msg.append(point.x)
+	msg.append(point.y)
+	msg.append(-point.z)
+
+def GetFirstArg(descID):
+	text = descID.__str__()
+	return int(text.lstrip("(").rstrip(")").split(",")[0])
+
+class OSCClientObject(plugins.ObjectData):
 	"""OSCClientObject"""
 
 	client = 0
 	cachedAddress = ""
 	cachedPort = ""
+
+	def __init__(self):
+		self.SetOptimizeCache(True)
 
 	def Init(self, node):
 		data = node.GetDataInstance()
@@ -30,71 +44,83 @@ class OSCClientObject(c4d.plugins.ObjectData):
 		data.SetLong(VAR_Port, 4000)
 		return True
 
-	def AddToExecution(self, op, list):
-		print "add to exec queue"
-		list.Add(op, c4d.EXECUTIONPRIORITY_INITIAL, 0)
-		list.Add(op, c4d.EXECUTIONPRIORITY_ANIMATION, 0)
-		list.Add(op, c4d.EXECUTIONPRIORITY_EXPRESSION, 0)
-		list.Add(op, c4d.EXECUTIONPRIORITY_GENERATOR, 0)
-		return True
-
-	def Execute(self, op, doc, bt, priority, flags):
-		print "exec client object"
-		data = node.GetDataInstance()
+	def GetVirtualObjects(self, op, hierarchyhelp):
+		data = op.GetDataInstance()
 		newAddress = data.GetString(VAR_Address)
 		newPort = data.GetLong(VAR_Port)
 
 		if newAddress != self.cachedAddress or newPort != self.cachedPort:
-			self.cachedAddress = newAddress
-			self.newPort = newPort
-			client = OSCClient()
-			client.connect(newAddress, newPort)
+			print "OSC : Re-initialise client : ", newAddress, newPort
+			try:
+				self.client = OSCClient()
+				self.client.connect( (newAddress, newPort ) )
+				self.client.send(OSCMessage("/init"))
 
-			msg = OSCMessage("/init")
-			client.send(msg)
-			print msg
+				self.cachedAddress = newAddress
+				self.cachedPort = newPort
 
+				print "OSC : Connected"
+			except:
+				 self.client = 0
+
+		doc = op.GetDocument()
 		frame = doc.GetTime().GetFrame(doc.GetFps())
-		print frame
-		return c4d.EXECUTIONRESULT_OK
 
-class OSCSplineTag(c4d.plugins.TagData):
-	"""OSCSplineTag"""
+		self.SendVariable("/frame", int(frame))
 
-	def Init(self, node):
-		tag = node
-		data = tag.GetDataInstance()
+		children = op.GetChildren()
+		childIndex = 0
+		self.SendVariable("/objects/clear", 0)
+		self.SendVariable("/objects/count", len(children))
+		for child in children:
+			spline = child.GetRealSpline()
+			objectBaseAddress = "/objects/" + str(childIndex)
 
-		data.SetBool(VAR_Enabled, False)
-		data.SetLong(VAR_Scale, 7)
-		data.SetLong(VAR_Resolution, 4)
-		return True
+			if spline is not None:
+				transform = child.GetMg()
+				resolution = 20
 
-	def Execute(self, tag, doc, op, bt, priority, flags):
-		print "exec spline tag"
-		data = tag.GetDataInstance()
-		ourTransform = op.GetMg()
-		spline = op.GetRealSpline()
-		client = op.GetUp()
-		fail = False
-		if client is None:
-			fail = True
+				msg = OSCMessage(objectBaseAddress + "/spline")
 
-		if spline is None:
-			fail = True
+				for iLookup in range(0, resolution):
+					x = float(iLookup) / float(resolution)
+					AppendPoint(msg, spline, transform, x)
+				
+				if spline.IsClosed():
+					AppendPoint(msg, spline, transform, 0)
 
-		if fail:
-			print "Please use OSC Spline Tag on spline objects "
-			return EXECUTIONRESULT_OK
-		
-		resolution = data.GetLong(VAR_Resolution)
+				self.Send(msg)
 
-		for iLookup in range(0, resolution):
-			x = float(iLookup) / float(resolution)
-			point = spline.GetSplinePoint(x) * ourTransform / 100.0
-			# print point
+			userData = child.GetUserDataContainer()
+			if userData is not None:
+				for descID, container in userData:
+					name = container.__getitem__(1)
+					name = name.replace(" ", "_")
+					value = child[c4d.ID_USERDATA, GetFirstArg(descID)]
+					address = objectBaseAddress + "/" + name
 
-		return c4d.EXECUTIONRESULT_OK
+					if type(value) is c4d.Vector:
+						self.SendVariable(address + "/x", value.x)
+						self.SendVariable(address + "/y", value.y)
+						self.SendVariable(address + "/z", value.z)
+					elif value is not None:
+						self.SendVariable(address, value)
+
+			childIndex += 1
+
+		self.SendVariable("/objects/end", 0)
+		return None
+
+	def Send(self, msg):
+		try:
+			self.client.send(msg)
+		except:
+			pass
+
+	def SendVariable(self, address, variable):
+		msg = OSCMessage(address);
+		msg.append(variable)
+		self.Send(msg)
 
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()
@@ -104,12 +130,10 @@ if __name__ == "__main__":
 	result = bmp.InitWith(bitmapFilename)
 	if not result:
 		print "Error loading bitmap icon"
-
-	result = plugins.RegisterTagPlugin(id=1032062, str="OSC Spline Tag", info=c4d.TAG_VISIBLE|c4d.TAG_EXPRESSION, g=OSCSplineTag, description="OSCSplineTag", icon=bmp)
-	if result:
-		result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_CALL_ADDEXECUTION, g=OSCClientObject, description="OSCClientObject", icon=bmp)
 	
-	print "OSC plugin initialised build 34: ", result
+	result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_GENERATOR | c4d.OBJECT_INPUT, g=OSCClientObject, description="OSCClientObject", icon=bmp)
+	
+	print "OSC plugin initialised build 50: ", result
 
 
 
