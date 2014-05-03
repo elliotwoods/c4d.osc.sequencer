@@ -93,7 +93,7 @@ class OSCClientObject(plugins.ObjectData):
 		self.sendThread = ClientThread()
 		self.sendThread.Start()
 
-		return Tru
+		return True
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
 		data = op.GetDataInstance()
