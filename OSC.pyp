@@ -2,6 +2,7 @@ import c4d
 import os
 
 import sys
+import threading
 import random
 import time
 
@@ -9,6 +10,7 @@ from SimpleOSC import *
 from OSC import *
 
 from c4d import gui, plugins, bitmaps
+from c4d.threading import C4DThread
 
 VAR_Settings = 1000
 VAR_Enabled = 1001
@@ -17,31 +19,71 @@ VAR_Resolution = 1103
 VAR_Address = 1002
 VAR_Port = 1003
 
-def AppendPoint(msg, spline, transform, x):
-	point = spline.GetSplinePoint(x) * transform / 100.0
-	msg.append(point.x)
-	msg.append(point.y)
-	msg.append(-point.z)
+def AppendPoint(msg, point):
+	msg.append(point.x / 100.0)
+	msg.append(point.y / 100.0)
+	msg.append(-point.z / 100.0)
 
 def GetFirstArg(descID):
 	text = descID.__str__()
 	return int(text.lstrip("(").rstrip(")").split(",")[0])
 
-class OSCClientObject(plugins.ObjectData):
-	"""OSCClientObject"""
+class ClientThread(C4DThread):
+	client = False
+	lockClient = threading.Lock()
 
-	client = 0
 	cachedAddress = ""
 	cachedPort = ""
 
+	running = True
+
+	def checkInitialise(self, newAddress, newPort):
+		with lockClient:
+			if newAddress != self.cachedAddress or newPort != self.cachedPort:
+				print "OSC : Re-initialise client : ", newAddress, newPort
+				try:
+					self.client = OSCClient()
+					self.client.connect( (newAddress, newPort ) )
+					self.client.send(OSCMessage("/init"))
+
+					self.cachedAddress = newAddress
+					self.cachedPort = newPort
+
+					print "OSC : Connected"
+				except:
+					 self.client = False
+
+	def queueMessage(self, message):
+		pass
+
+	def Main(self):
+		print "startThread"
+		while not self.TestBreak() and self.running:
+			print "thread nah"
+			time.sleep(0.005)
+
+class OSCClientObject(plugins.ObjectData):
+	"""OSCClientObject"""
+
+	sendThread = False
+
 	def __init__(self):
 		self.SetOptimizeCache(True)
+		print "init"
+
+	def Free(self, node):
+		sendThread.End()
+		print "quit"
 
 	def Init(self, node):
 		data = node.GetDataInstance()
 		data.SetBool(VAR_Enabled, True)
 		data.SetString(VAR_Address, "127.0.0.1")
 		data.SetLong(VAR_Port, 4000)
+
+		self.sendThread = ClientThread()
+		self.sendThread.Start()
+
 		return True
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
@@ -49,19 +91,7 @@ class OSCClientObject(plugins.ObjectData):
 		newAddress = data.GetString(VAR_Address)
 		newPort = data.GetLong(VAR_Port)
 
-		if newAddress != self.cachedAddress or newPort != self.cachedPort:
-			print "OSC : Re-initialise client : ", newAddress, newPort
-			try:
-				self.client = OSCClient()
-				self.client.connect( (newAddress, newPort ) )
-				self.client.send(OSCMessage("/init"))
 
-				self.cachedAddress = newAddress
-				self.cachedPort = newPort
-
-				print "OSC : Connected"
-			except:
-				 self.client = 0
 
 		doc = op.GetDocument()
 		frame = doc.GetTime().GetFrame(doc.GetFps())
@@ -78,16 +108,16 @@ class OSCClientObject(plugins.ObjectData):
 
 			if spline is not None:
 				transform = child.GetMg()
-				resolution = 20
+				resolution = 200
 
 				msg = OSCMessage(objectBaseAddress + "/spline")
 
 				for iLookup in range(0, resolution):
 					x = float(iLookup) / float(resolution)
-					AppendPoint(msg, spline, transform, x)
+					AppendPoint(msg, spline.GetSplinePoint(x) * transform)
 				
 				if spline.IsClosed():
-					AppendPoint(msg, spline, transform, 0)
+					AppendPoint(msg, spline.GetSplinePoint(0) * transform)
 
 				self.Send(msg)
 
@@ -100,6 +130,8 @@ class OSCClientObject(plugins.ObjectData):
 					address = objectBaseAddress + "/" + name
 
 					if type(value) is c4d.Vector:
+						msg = OSCMessage()
+						AppendPoint()
 						self.SendVariable(address + "/x", value.x)
 						self.SendVariable(address + "/y", value.y)
 						self.SendVariable(address + "/z", value.z)
@@ -109,6 +141,7 @@ class OSCClientObject(plugins.ObjectData):
 			childIndex += 1
 
 		self.SendVariable("/objects/end", 0)
+		self.hasDataWaiting = True
 		return None
 
 	def Send(self, msg):
@@ -120,7 +153,7 @@ class OSCClientObject(plugins.ObjectData):
 	def SendVariable(self, address, variable):
 		msg = OSCMessage(address);
 		msg.append(variable)
-		self.Send(msg)
+		self.backBufferBundle.append(msg)
 
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()
