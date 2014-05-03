@@ -19,6 +19,12 @@ VAR_Resolution = 1103
 VAR_Address = 1002
 VAR_Port = 1003
 
+def include(filename):
+    if os.path.exists(filename): 
+        execfile(filename)
+
+include('gitcommit.py')
+
 def AppendPoint(msg, point):
 	msg.append(point.x / 100.0)
 	msg.append(point.y / 100.0)
@@ -65,10 +71,13 @@ class ClientThread(C4DThread):
 		print "startThread"
 		while not self.TestBreak() and self.running:
 			empty = False
-			with lockMessageQueue
-				empty = len(messageQueue) == 0
-			if not empty:
-
+			messagesToSend = []
+			with self.lockMessageQueue:
+				messagesToSend = self.messageQueue
+				self.messageQueue = []
+			for message in messageQueue:
+				self.client.send(message)
+			
 			time.sleep(0.005)
 
 class OSCClientObject(plugins.ObjectData):
@@ -176,7 +185,7 @@ if __name__ == "__main__":
 	
 	result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_GENERATOR | c4d.OBJECT_INPUT, g=OSCClientObject, description="OSCClientObject", icon=bmp)
 	
-	print "OSC plugin initialised build 50: ", result
+	print "OSC plugin initialised build: ", prev_commit
 
 
 
