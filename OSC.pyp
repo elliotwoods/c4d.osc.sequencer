@@ -32,6 +32,9 @@ class ClientThread(C4DThread):
 	client = False
 	lockClient = threading.Lock()
 
+	messageQueue = []
+	lockMessageQueue = threading.Lock()
+
 	cachedAddress = ""
 	cachedPort = ""
 
@@ -54,12 +57,18 @@ class ClientThread(C4DThread):
 					 self.client = False
 
 	def queueMessage(self, message):
+		with lockMessageQueue:
+			self.messageQueue.append(message)
 		pass
 
 	def Main(self):
 		print "startThread"
 		while not self.TestBreak() and self.running:
-			print "thread nah"
+			empty = False
+			with lockMessageQueue
+				empty = len(messageQueue) == 0
+			if not empty:
+
 			time.sleep(0.005)
 
 class OSCClientObject(plugins.ObjectData):
@@ -84,7 +93,7 @@ class OSCClientObject(plugins.ObjectData):
 		self.sendThread = ClientThread()
 		self.sendThread.Start()
 
-		return True
+		return Tru
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
 		data = op.GetDataInstance()
@@ -153,7 +162,8 @@ class OSCClientObject(plugins.ObjectData):
 	def SendVariable(self, address, variable):
 		msg = OSCMessage(address);
 		msg.append(variable)
-		self.backBufferBundle.append(msg)
+		if self.sendThread is not False:
+			self.sendThread
 
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()
