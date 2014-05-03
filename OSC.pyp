@@ -19,12 +19,6 @@ VAR_Resolution = 1103
 VAR_Address = 1002
 VAR_Port = 1003
 
-def include(filename):
-    if os.path.exists(filename): 
-        execfile(filename)
-
-include('gitcommit.py')
-
 def AppendPoint(msg, point):
 	msg.append(point.x / 100.0)
 	msg.append(point.y / 100.0)
@@ -185,7 +179,10 @@ if __name__ == "__main__":
 	
 	result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_GENERATOR | c4d.OBJECT_INPUT, g=OSCClientObject, description="OSCClientObject", icon=bmp)
 	
-	print "OSC plugin initialised build: ", prev_commit
+	gitCommitFilename = os.path.join(dir, "res", "git_commit.txt")
+	gitCommitFile = open(gitCommitFilename, 'r')
+
+	print "OSC plugin initialised build: ", gitCommitFile.read()
 
 
 
