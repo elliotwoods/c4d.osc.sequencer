@@ -1,8 +1,0 @@
-STRINGTABLE OSCSplineTag {
-	OSCSplineTag "OSC Spine Tag";
-
-	Enabled "Enabled";
-	Scale "Scale";
-	OSCSplineTagSettings "Settings";
-	Resolution "Resolution";
-}

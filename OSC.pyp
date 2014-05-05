@@ -14,19 +14,12 @@ from c4d.threading import C4DThread
 
 VAR_Settings = 1000
 VAR_Enabled = 1001
-VAR_Scale = 1102
-VAR_Resolution = 1103
 VAR_Address = 1002
 VAR_Port = 1003
+VAR_SplineResolution = 1004
+VAR_ReformatCoordinates = 1005
 
-def AppendPoint(msg, point):
-	msg.append(point.x / 100.0)
-	msg.append(point.y / 100.0)
-	msg.append(-point.z / 100.0)
-
-def GetFirstArg(descID):
-	text = descID.__str__()
-	return int(text.lstrip("(").rstrip(")").split(",")[0])
+activeThreads = []
 
 class ClientThread(C4DThread):
 	client = False
@@ -41,7 +34,7 @@ class ClientThread(C4DThread):
 	running = True
 
 	def checkInitialise(self, newAddress, newPort):
-		with lockClient:
+		with self.lockClient:
 			if newAddress != self.cachedAddress or newPort != self.cachedPort:
 				print "OSC : Re-initialise client : ", newAddress, newPort
 				try:
@@ -56,24 +49,97 @@ class ClientThread(C4DThread):
 				except:
 					 self.client = False
 
-	def queueMessage(self, message):
-		with lockMessageQueue:
+	def sendMessage(self, message):
+		with self.lockMessageQueue:
 			self.messageQueue.append(message)
-		pass
 
 	def Main(self):
-		print "startThread"
 		while not self.TestBreak() and self.running:
-			empty = False
-			messagesToSend = []
-			with self.lockMessageQueue:
-				messagesToSend = self.messageQueue
-				self.messageQueue = []
-			for message in messageQueue:
-				self.client.send(message)
+			if self.client is not False:
+				messagesToSend = []
+				with self.lockMessageQueue:
+					messagesToSend = list(self.messageQueue)
+					self.messageQueue = []
+				for message in messagesToSend:
+					try:
+						self.client.send(message)
+					except:
+						pass
 			
 			time.sleep(0.005)
 
+def Send(sender, address, variable):
+	if (sender is False):
+		return
+	msg = OSCMessage(address)
+	if type(variable) is list:
+		for item in variable:
+			msg.append(item)
+	else:
+		msg.append(variable)
+	sender.sendMessage(msg)
+
+def vectorToList(vector, reformatCoordinates):
+	if reformatCoordinates:
+		return [vector.x / 100.0, vector.y / 100.0, - vector.z / 100.0]
+	else:
+		return [vector.x, vector.y, vector.z]
+
+def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoordinates):
+	# send begin
+	Send(sender, baseAddress + "/begin", [])
+
+	# send object position
+	position = object.GetAbsPos();
+	Send(sender, baseAddress + "/position", vectorToList(position, reformatCoordinates))
+
+	# if the object is a spline, then send the spline
+	spline = object.GetRealSpline()
+	if spline is not None:
+		transform = object.GetMg()
+
+		splineCoords = []
+
+		for iLookup in range(0, splineResolution):
+			x = float(iLookup) / float(splineResolution)
+			splineCoords.append(spline.GetSplinePoint(x) * transform)
+		
+		if spline.IsClosed():
+			splineCoords.append(spline.GetSplinePoint(0) * transform)
+
+		splineCoordsSplit = []
+		for splineCoord in splineCoords:
+			splineCoordsSplit += vectorToList(splineCoord, reformatCoordinates)
+
+		Send(sender, baseAddress + "/spline", splineCoordsSplit)
+
+	# send any user data
+	userData = object.GetUserDataContainer()
+	if userData is not None:
+		for descID, container in userData:
+			name = container.__getitem__(1)
+			name = name.replace(" ", "_")
+			value = object[descID]
+
+			sendArguments = 0
+
+			if type(value) is c4d.Vector:
+				sendArguments = vectorToList(value, reformatCoordinates)
+			elif value is not None:
+				sendArguments = value
+
+			Send(sender, baseAddress + "/" + name, sendArguments)
+
+	# send any children also
+	children = object.GetChildren()
+	for child in children:
+		SerialiseObject(sender, baseAddress + "/" + child.GetName(), child, splineResolution, reformatCoordinates)
+	if len(children) is not 0:
+		Send(sender, baseAddress + "/childCount", len(children))
+
+	# send end
+	Send(sender, baseAddress + "/end", [])
+	
 class OSCClientObject(plugins.ObjectData):
 	"""OSCClientObject"""
 
@@ -81,92 +147,50 @@ class OSCClientObject(plugins.ObjectData):
 
 	def __init__(self):
 		self.SetOptimizeCache(True)
-		print "init"
 
 	def Free(self, node):
-		sendThread.End()
-		print "quit"
+		if self.sendThread:
+			self.sendThread.End()
+			while self.sendThread in activeThreads: activeThreads.remove(self.sendThread)
+			print "OSC : Close send thread"
+			print "OSC : Active threads ...", activeThreads
 
 	def Init(self, node):
 		data = node.GetDataInstance()
 		data.SetBool(VAR_Enabled, True)
 		data.SetString(VAR_Address, "127.0.0.1")
 		data.SetLong(VAR_Port, 4000)
-
-		self.sendThread = ClientThread()
-		self.sendThread.Start()
-
+		data.SetLong(VAR_SplineResolution, 200)
+		data.SetBool(VAR_ReformatCoordinates, True)
 		return True
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
 		data = op.GetDataInstance()
-		newAddress = data.GetString(VAR_Address)
-		newPort = data.GetLong(VAR_Port)
 
+		#check if we need to open the thread
+		if self.sendThread is False:
+			#if so open the thread
+			self.sendThread = ClientThread()
+			self.sendThread.Start()
+			activeThreads.append(self.sendThread)
 
+			print "OSC : Open send thread"
+			print "OSC : Active threads ...", activeThreads
+		else:
+			#otherwise check if we need to set properties
+			newAddress = data.GetString(VAR_Address)
+			newPort = data.GetLong(VAR_Port)
+			self.sendThread.checkInitialise(newAddress, newPort)
 
+		#send the current frame number
 		doc = op.GetDocument()
 		frame = doc.GetTime().GetFrame(doc.GetFps())
+		Send(self.sendThread, "/frame", int(frame))
 
-		self.SendVariable("/frame", int(frame))
+		#send object tree
+		SerialiseObject(self.sendThread, "", op, data.GetLong(VAR_SplineResolution), data.GetBool(VAR_ReformatCoordinates))
 
-		children = op.GetChildren()
-		childIndex = 0
-		self.SendVariable("/objects/clear", 0)
-		self.SendVariable("/objects/count", len(children))
-		for child in children:
-			spline = child.GetRealSpline()
-			objectBaseAddress = "/objects/" + str(childIndex)
-
-			if spline is not None:
-				transform = child.GetMg()
-				resolution = 200
-
-				msg = OSCMessage(objectBaseAddress + "/spline")
-
-				for iLookup in range(0, resolution):
-					x = float(iLookup) / float(resolution)
-					AppendPoint(msg, spline.GetSplinePoint(x) * transform)
-				
-				if spline.IsClosed():
-					AppendPoint(msg, spline.GetSplinePoint(0) * transform)
-
-				self.Send(msg)
-
-			userData = child.GetUserDataContainer()
-			if userData is not None:
-				for descID, container in userData:
-					name = container.__getitem__(1)
-					name = name.replace(" ", "_")
-					value = child[c4d.ID_USERDATA, GetFirstArg(descID)]
-					address = objectBaseAddress + "/" + name
-
-					if type(value) is c4d.Vector:
-						msg = OSCMessage()
-						AppendPoint()
-						self.SendVariable(address + "/x", value.x)
-						self.SendVariable(address + "/y", value.y)
-						self.SendVariable(address + "/z", value.z)
-					elif value is not None:
-						self.SendVariable(address, value)
-
-			childIndex += 1
-
-		self.SendVariable("/objects/end", 0)
-		self.hasDataWaiting = True
 		return None
-
-	def Send(self, msg):
-		try:
-			self.client.send(msg)
-		except:
-			pass
-
-	def SendVariable(self, address, variable):
-		msg = OSCMessage(address);
-		msg.append(variable)
-		if self.sendThread is not False:
-			self.sendThread
 
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()
