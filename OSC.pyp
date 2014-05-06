@@ -195,7 +195,7 @@ class OSCClientObject(plugins.ObjectData):
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()
 	dir, file = os.path.split(__file__)
-	bitmapFilename = os.path.join(dir, "res", "kc_letter.bmp")
+	bitmapFilename = os.path.join(dir, "res", "kc_letter.png")
 
 	result = bmp.InitWith(bitmapFilename)
 	if not result:
