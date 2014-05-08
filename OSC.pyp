@@ -85,19 +85,23 @@ def vectorToList(vector, reformatCoordinates):
 	else:
 		return [vector.x, vector.y, vector.z]
 
+def FormatName(name):
+	return name.replace(" ", "_")
+
 def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoordinates):
 	# send begin
 	Send(sender, baseAddress + "/begin", [])
 
+	# get our transform
+	transform = object.GetMg()
+
 	# send object position
-	position = object.GetAbsPos();
+	position = object.GetAbsPos() * object.GetUpMg();
 	Send(sender, baseAddress + "/position", vectorToList(position, reformatCoordinates))
 
 	# if the object is a spline, then send the spline
 	spline = object.GetRealSpline()
 	if spline is not None:
-		transform = object.GetMg()
-
 		splineCoords = []
 
 		for iLookup in range(0, splineResolution):
@@ -118,7 +122,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 	if userData is not None:
 		for descID, container in userData:
 			name = container.__getitem__(1)
-			name = name.replace(" ", "_")
+			name = FormatName(name)
 			value = object[descID]
 
 			sendArguments = 0
@@ -133,7 +137,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 	# send any children also
 	children = object.GetChildren()
 	for child in children:
-		SerialiseObject(sender, baseAddress + "/" + child.GetName(), child, splineResolution, reformatCoordinates)
+		SerialiseObject(sender, baseAddress + "/" + FormatName(child.GetName()), child, splineResolution, reformatCoordinates)
 	if len(children) is not 0:
 		Send(sender, baseAddress + "/childCount", len(children))
 
