@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>27D3FD61-370F-407B-A816-BA4890057640</string>
+	<key>IDESourceControlProjectName</key>
+	<string>oscTest</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>7C166B58-0908-40E8-9629-EAE209B3C2F7</key>
+		<string>ssh://github.com/elliotwoods/oF.Sketches.git</string>
+		<key>F8F04221-6ECF-4945-B5BD-9C36339737AC</key>
+		<string>ssh://github.com/elliotwoods/openFrameworks.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>apps/KimchiAndChips.Sketches/drawTestCircles/oscTest.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>7C166B58-0908-40E8-9629-EAE209B3C2F7</key>
+		<string>../../..</string>
+		<key>F8F04221-6ECF-4945-B5BD-9C36339737AC</key>
+		<string>../../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/elliotwoods/oF.Sketches.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>F8F04221-6ECF-4945-B5BD-9C36339737AC</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>7C166B58-0908-40E8-9629-EAE209B3C2F7</string>
+			<key>IDESourceControlWCCName</key>
+			<string>KimchiAndChips.Sketches</string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>F8F04221-6ECF-4945-B5BD-9C36339737AC</string>
+			<key>IDESourceControlWCCName</key>
+			<string>openFrameworks</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -65,8 +65,8 @@ class ClientThread(C4DThread):
 						self.client.send(message)
 					except:
 						pass
-			
-			time.sleep(0.005)
+			else:
+				time.sleep(0.005)
 
 def Send(sender, address, variable):
 	if (sender is False):
@@ -128,7 +128,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 			sendArguments = 0
 
 			if type(value) is c4d.Vector:
-				sendArguments = vectorToList(value, reformatCoordinates)
+				sendArguments = vectorToList(value, False)
 			elif value is not None:
 				sendArguments = value
 

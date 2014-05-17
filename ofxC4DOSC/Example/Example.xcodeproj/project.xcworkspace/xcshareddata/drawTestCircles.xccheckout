@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>B02EC055-CC21-478F-B6D2-E8C1CA27A9BD</string>
+	<key>IDESourceControlProjectName</key>
+	<string>drawTestCircles</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>3A2B65C8-CF58-4C03-81BF-063AC866C9C0</key>
+		<string>ssh://github.com/elliotwoods/c4d.osc.sequencer.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>ofxC4DOSC/Example/drawTestCircles.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>3A2B65C8-CF58-4C03-81BF-063AC866C9C0</key>
+		<string>../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/elliotwoods/c4d.osc.sequencer.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>3A2B65C8-CF58-4C03-81BF-063AC866C9C0</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>3A2B65C8-CF58-4C03-81BF-063AC866C9C0</string>
+			<key>IDESourceControlWCCName</key>
+			<string>OSC</string>
+		</dict>
+	</array>
+</dict>
+</plist>

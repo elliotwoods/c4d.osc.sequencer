@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>0491E47F-9E4A-4763-93D9-4CDD03949B69</string>
+	<key>IDESourceControlProjectName</key>
+	<string>Example</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>EA67276E-933B-4B06-8B14-FB4DA1E80FC9</key>
+		<string>ssh://github.com/elliotwoods/c4d.osc.sequencer.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>ofxC4DOSC/Example/Example.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>EA67276E-933B-4B06-8B14-FB4DA1E80FC9</key>
+		<string>../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/elliotwoods/c4d.osc.sequencer.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>EA67276E-933B-4B06-8B14-FB4DA1E80FC9</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>EA67276E-933B-4B06-8B14-FB4DA1E80FC9</string>
+			<key>IDESourceControlWCCName</key>
+			<string>OSC</string>
+		</dict>
+	</array>
+</dict>
+</plist>
