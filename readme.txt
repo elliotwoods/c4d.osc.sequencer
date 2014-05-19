@@ -1,3 +1,14 @@
-requires pyOSC-0.3.5b-5294
+download this repo into
 
-e.g. install into ~/Library/Preferences/MAXON/CINEMA 4D/library/python/packages/osx
+~/Library/Preferences/MAXON/CINEMA 4D--versionnnumber--/plugins/OSC
+
+where --versionnnumber-- corresponds to your local folder name
+
+download
+
+http://www.kimchiandchips.com/files/python-osc-packages.zip
+
+and unzip into
+
+~/Library/Preferences/MAXON/CINEMA 4D--versionnnumber--/library/python/packages/osx
+
