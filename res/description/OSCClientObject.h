@@ -6,5 +6,6 @@ enum {
 	Address = 1002,
 	Port = 1003,
 	SplineResolution = 1004,
-	ReformatCoordinates = 1005
+	ReformatCoordinates = 1005,
+	UseSendThread = 1006
 };

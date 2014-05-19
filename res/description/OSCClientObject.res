@@ -9,5 +9,6 @@ CONTAINER OSCClientObject {
 		BOOL Enabled {}
 		LONG SplineResolution {MINEX; MIN 1; }
 		BOOL ReformatCoordinates {}
+		BOOL UseSendThread {}
 	}
 }

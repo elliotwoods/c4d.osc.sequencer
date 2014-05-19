@@ -7,4 +7,5 @@ STRINGTABLE OSCClientObject {
 	OSCClientObjectSettings "Settings";
 	SplineResolution "Spline Resolution";
 	ReformatCoordinates "Reformat Coordinates";
+	UseSendThread "Use Send Thread";
 }

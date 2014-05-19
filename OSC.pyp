@@ -18,10 +18,11 @@ VAR_Address = 1002
 VAR_Port = 1003
 VAR_SplineResolution = 1004
 VAR_ReformatCoordinates = 1005
+VAR_UseSendThread = 1006
 
 activeThreads = []
 
-class ClientThread(C4DThread):
+class OSCClientThread(C4DThread):
 	client = False
 	lockClient = threading.Lock()
 
@@ -32,8 +33,10 @@ class ClientThread(C4DThread):
 	cachedPort = ""
 
 	running = True
+	useSeperateThread = False
 
-	def checkInitialise(self, newAddress, newPort):
+	def checkInitialise(self, newAddress, newPort, useSeperateThread):
+		self.useSeperateThread = useSeperateThread
 		with self.lockClient:
 			if newAddress != self.cachedAddress or newPort != self.cachedPort:
 				print "OSC : Re-initialise client : ", newAddress, newPort
@@ -47,26 +50,44 @@ class ClientThread(C4DThread):
 
 					print "OSC : Connected"
 				except:
-					 self.client = False
+					print "OSC : Failed to open thread"
+					self.client = False
 
 	def sendMessage(self, message):
-		with self.lockMessageQueue:
-			self.messageQueue.append(message)
-
-	def Main(self):
-		while not self.TestBreak() and self.running:
-			if self.client is not False:
-				messagesToSend = []
-				with self.lockMessageQueue:
-					messagesToSend = list(self.messageQueue)
-					self.messageQueue = []
-				for message in messagesToSend:
+		if self.useSeperateThread:
+			with self.lockMessageQueue:
+				self.messageQueue.append(message)
+		else:
+			with self.lockClient:
+				if self.client is not False:
 					try:
 						self.client.send(message)
 					except:
 						pass
+				else:
+					print "OSC : Cannot send message, OSCCLient.client is not set"
+
+	def Main(self):
+		while not self.TestBreak() and self.running:
+			if self.useSeperateThread:
+				hasClient = False
+				with self.lockClient:
+					hasClient = self.client is not False
+				if hasClient:
+					messagesToSend = []
+					with self.lockMessageQueue:
+						messagesToSend = list(self.messageQueue)
+						self.messageQueue = []
+					for message in messagesToSend:
+						try:
+							self.client.send(message)
+						except:
+							pass
+				else:
+					time.sleep(0.005)
 			else:
-				time.sleep(0.005)
+				time.sleep(0.010)
+			
 
 def Send(sender, address, variable):
 	if (sender is False):
@@ -147,15 +168,16 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 class OSCClientObject(plugins.ObjectData):
 	"""OSCClientObject"""
 
-	sendThread = False
+	oscClient = False
 
 	def __init__(self):
 		self.SetOptimizeCache(True)
 
 	def Free(self, node):
-		if self.sendThread:
-			self.sendThread.End()
-			while self.sendThread in activeThreads: activeThreads.remove(self.sendThread)
+		if self.oscClient:
+			self.oscClient.End()
+			while self.oscClient in activeThreads:
+				activeThreads.remove(self.oscClient)
 			print "OSC : Close send thread"
 			print "OSC : Active threads ...", activeThreads
 
@@ -166,33 +188,37 @@ class OSCClientObject(plugins.ObjectData):
 		data.SetLong(VAR_Port, 4000)
 		data.SetLong(VAR_SplineResolution, 200)
 		data.SetBool(VAR_ReformatCoordinates, True)
+		data.SetBool(VAR_UseSendThread, False)
 		return True
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
 		data = op.GetDataInstance()
 
-		#check if we need to open the thread
-		if self.sendThread is False:
-			#if so open the thread
-			self.sendThread = ClientThread()
-			self.sendThread.Start()
-			activeThreads.append(self.sendThread)
+		useThread = data.GetBool(VAR_UseSendThread)
+		newAddress = data.GetString(VAR_Address)
+		newPort = data.GetLong(VAR_Port)
 
-			print "OSC : Open send thread"
-			print "OSC : Active threads ...", activeThreads
+		#check if we need to open the thread
+		if self.oscClient is False:
+			#if so open the thread
+			self.oscClient = OSCClientThread()
+			self.oscClient.Start()
+			self.oscClient.checkInitialise(newAddress, newPort, useThread)
+			activeThreads.append(self.oscClient)
+
+			print "OSC : Open OSCClient"
+			print "OSC : Active senders ...", activeThreads
 		else:
-			#otherwise check if we need to set properties
-			newAddress = data.GetString(VAR_Address)
-			newPort = data.GetLong(VAR_Port)
-			self.sendThread.checkInitialise(newAddress, newPort)
+			#otherwise update any properties
+			self.oscClient.checkInitialise(newAddress, newPort, useThread)
 
 		#send the current frame number
 		doc = op.GetDocument()
 		frame = doc.GetTime().GetFrame(doc.GetFps())
-		Send(self.sendThread, "/frame", int(frame))
+		Send(self.oscClient, "/frame", int(frame))
 
 		#send object tree
-		SerialiseObject(self.sendThread, "", op, data.GetLong(VAR_SplineResolution), data.GetBool(VAR_ReformatCoordinates))
+		SerialiseObject(self.oscClient, "", op, data.GetLong(VAR_SplineResolution), data.GetBool(VAR_ReformatCoordinates))
 
 		return None
 
