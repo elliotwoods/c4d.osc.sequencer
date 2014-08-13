@@ -149,7 +149,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 			sendArguments = 0
 
 			if type(value) is c4d.Vector:
-				sendArguments = vectorToList(value, False)
+				sendArguments = vectorToList(value, reformatCoordinates)
 			elif value is not None:
 				sendArguments = value
 
