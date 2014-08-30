@@ -125,10 +125,15 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 	if spline is not None:
 		splineCoords = []
 
-		for iLookup in range(0, splineResolution):
-			x = float(iLookup) / float(splineResolution)
-			splineCoords.append(spline.GetSplinePoint(x) * transform)
-		
+		if spline.GetInterpolationType() == c4d.SPLINETYPE_LINEAR:
+			for iPoint in range(0, spline.GetPointCount()):
+				splineCoords.append(spline.GetPoint(iPoint))
+			
+		else:
+			for iLookup in range(0, splineResolution):
+				x = float(iLookup) / float(splineResolution)
+				splineCoords.append(spline.GetSplinePoint(x) * transform)
+			
 		if spline.IsClosed():
 			splineCoords.append(spline.GetSplinePoint(0) * transform)
 
