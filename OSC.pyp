@@ -113,6 +113,9 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 	# send begin
 	Send(sender, baseAddress + "/begin", [])
 
+	# send object display colour
+	Send(sender, baseAddress + "/displayColor", vectorToList(object[c4d.ID_BASEOBJECT_COLOR], False));
+
 	# get our transform
 	transform = object.GetMg()
 
@@ -158,7 +161,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 			elif value is not None:
 				sendArguments = value
 
-			Send(sender, baseAddress + "/" + name, sendArguments)
+			Send(sender, baseAddress + "/userData/" + name, sendArguments)
 
 	# send any children also
 	children = object.GetChildren()
