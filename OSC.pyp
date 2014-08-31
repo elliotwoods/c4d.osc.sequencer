@@ -102,7 +102,7 @@ def Send(sender, address, variable):
 
 def vectorToList(vector, reformatCoordinates):
 	if reformatCoordinates:
-		return [vector.x / 100.0, vector.y / 100.0, - vector.z / 100.0]
+		return [vector.x / 100.0, vector.y / 100.0, vector.z / 100.0]
 	else:
 		return [vector.x, vector.y, vector.z]
 
@@ -127,7 +127,7 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 
 		if spline.GetInterpolationType() == c4d.SPLINETYPE_LINEAR:
 			for iPoint in range(0, spline.GetPointCount()):
-				splineCoords.append(spline.GetPoint(iPoint))
+				splineCoords.append(spline.GetPoint(iPoint) * transform)
 			
 		else:
 			for iLookup in range(0, splineResolution):
