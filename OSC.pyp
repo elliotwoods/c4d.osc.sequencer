@@ -1,5 +1,6 @@
 import c4d
 import os
+import os.path
 
 import sys
 import threading
@@ -260,9 +261,13 @@ class OSCClientObject(plugins.ObjectData):
 		SerialiseObject(self.oscClient, "", op, serialiseArguments)
 
 		if exportEnabled:
-			jsonTotal = json.loads(open(exportFilename, 'r').read())
-			jsonTotal[int(frame)] = exportJson
-			open(exportFilename, 'w').write(json.dump(jsonTotal))
+			try:
+				jsonTotal = json.loads(open(exportFilename, 'r').read())
+			except:
+				jsonTotal = {}
+			
+			jsonTotal[frame] = exportJson
+			open(exportFilename, 'w').write(json.dumps(jsonTotal))
 			pass
 
 		return None

@@ -17,12 +17,12 @@ CONTAINER OSCClientObject {
 		}
 		BOOL ReformatCoordinates {}
 		
-		
 		SEPARATOR ExportSeparator {}
 		BOOL ExportEnabled {}
 		FILENAME ExportFilename {
 			SAVE;
 		}
 		STATICTEXT ExportNote {}
+		BUTTON ExportClear {}
 	}
 }
