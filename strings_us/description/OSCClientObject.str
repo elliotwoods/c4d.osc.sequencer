@@ -1,11 +1,21 @@
 STRINGTABLE OSCClientObject {
 	OSCClientObject "OSC Client Object";
 
+ExportSeperator "Export";
+	OSCClientObjectSettings "Settings";
+
+	NetworkSeparator "Network";
+	Enabled "Enabled";
 	Address "Address";
 	Port "Port";
-	Enabled "Enabled";
-	OSCClientObjectSettings "Settings";
+	UseSendThread "Use Send Thread";
+	
+	ObjectSeparator "Object";
 	SplineResolution "Spline Resolution";
 	ReformatCoordinates "Reformat Coordinates";
-	UseSendThread "Use Send Thread";
+
+	ExportSeparator "Export";
+	ExportEnabled "Export Enabled";
+	ExportFilename "Filename";
+	ExportNote "Export is saved in json format";
 }

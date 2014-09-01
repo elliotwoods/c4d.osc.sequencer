@@ -5,6 +5,8 @@ import sys
 import threading
 import random
 import time
+import json
+import base64
 
 from SimpleOSC import *
 from OSC import *
@@ -12,15 +14,29 @@ from OSC import *
 from c4d import gui, plugins, bitmaps
 from c4d.threading import C4DThread
 
+from collections import namedtuple
+
 VAR_Settings = 1000
-VAR_Enabled = 1001
-VAR_Address = 1002
-VAR_Port = 1003
-VAR_SplineResolution = 1004
-VAR_ReformatCoordinates = 1005
-VAR_UseSendThread = 1006
+
+VAR_NetworkSeparator = 1010
+VAR_Enabled = 1011
+VAR_Address = 1012
+VAR_Port = 1013
+VAR_UseSendThread = 1014
+
+VAR_ObjectSeparator = 1020
+VAR_SplineResolution = 1021
+VAR_ReformatCoordinates = 1022
+
+VAR_ExportSeperator = 1030
+VAR_ExportEnabled = 1031
+VAR_ExportFilename = 1032
+VAR_ExportNote = 1033
+VAR_ExportClear = 1034
 
 activeThreads = []
+
+SerialiseArguments = namedtuple("SerialiseArguments", "splineResolution reformatCoordinates exportEnabled exportJson")
 
 class OSCClientThread(C4DThread):
 	client = False
@@ -35,7 +51,9 @@ class OSCClientThread(C4DThread):
 	running = True
 	useSeperateThread = False
 
-	def checkInitialise(self, newAddress, newPort, useSeperateThread):
+	serialiseArguments = []
+
+	def checkInitialise(self, newAddress, newPort, useSeperateThread, serialiseArguments):
 		self.useSeperateThread = useSeperateThread
 		with self.lockClient:
 			if newAddress != self.cachedAddress or newPort != self.cachedPort:
@@ -47,6 +65,8 @@ class OSCClientThread(C4DThread):
 
 					self.cachedAddress = newAddress
 					self.cachedPort = newPort
+
+					self.serialiseArguments = serialiseArguments
 
 					print "OSC : Connected"
 				except:
@@ -89,8 +109,8 @@ class OSCClientThread(C4DThread):
 				time.sleep(0.010)
 			
 
-def Send(sender, address, variable):
-	if (sender is False):
+def Send(sender, address, variable, serialiseArguments):
+	if (sender is False and serialiseArguments.exportEnabled is False):
 		return
 	msg = OSCMessage(address)
 	if type(variable) is list:
@@ -98,7 +118,11 @@ def Send(sender, address, variable):
 			msg.append(item)
 	else:
 		msg.append(variable)
-	sender.sendMessage(msg)
+
+	if serialiseArguments.exportEnabled:
+		serialiseArguments.exportJson.append(base64.standard_b64encode(msg.getBinary()))
+	else:
+		sender.sendMessage(msg)
 
 def vectorToList(vector, reformatCoordinates):
 	if reformatCoordinates:
@@ -109,19 +133,19 @@ def vectorToList(vector, reformatCoordinates):
 def FormatName(name):
 	return name.replace(" ", "_")
 
-def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoordinates):
+def SerialiseObject(sender, baseAddress, object, serialiseArguments):
 	# send begin
-	Send(sender, baseAddress + "/begin", [])
+	Send(sender, baseAddress + "/begin", [], serialiseArguments)
 
 	# send object display colour
-	Send(sender, baseAddress + "/displayColor", vectorToList(object[c4d.ID_BASEOBJECT_COLOR], False));
+	Send(sender, baseAddress + "/displayColor", vectorToList(object[c4d.ID_BASEOBJECT_COLOR], False), serialiseArguments);
 
 	# get our transform
 	transform = object.GetMg()
 
 	# send object position
 	position = object.GetAbsPos() * object.GetUpMg();
-	Send(sender, baseAddress + "/position", vectorToList(position, reformatCoordinates))
+	Send(sender, baseAddress + "/position", vectorToList(position, serialiseArguments.reformatCoordinates), serialiseArguments)
 
 	# if the object is a spline, then send the spline
 	spline = object.GetRealSpline()
@@ -133,8 +157,8 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 				splineCoords.append(spline.GetPoint(iPoint) * transform)
 			
 		else:
-			for iLookup in range(0, splineResolution):
-				x = float(iLookup) / float(splineResolution)
+			for iLookup in range(0, serialiseArguments.splineResolution):
+				x = float(iLookup) / float(serialiseArguments.splineResolution)
 				splineCoords.append(spline.GetSplinePoint(x) * transform)
 			
 		if spline.IsClosed():
@@ -142,9 +166,9 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 
 		splineCoordsSplit = []
 		for splineCoord in splineCoords:
-			splineCoordsSplit += vectorToList(splineCoord, reformatCoordinates)
+			splineCoordsSplit += vectorToList(splineCoord, serialiseArguments.reformatCoordinates)
 
-		Send(sender, baseAddress + "/spline", splineCoordsSplit)
+		Send(sender, baseAddress + "/spline", splineCoordsSplit, serialiseArguments)
 
 	# send any user data
 	userData = object.GetUserDataContainer()
@@ -157,21 +181,21 @@ def SerialiseObject(sender, baseAddress, object, splineResolution, reformatCoord
 			sendArguments = 0
 
 			if type(value) is c4d.Vector:
-				sendArguments = vectorToList(value, reformatCoordinates)
+				sendArguments = vectorToList(value, serialiseArguments.reformatCoordinates)
 			elif value is not None:
 				sendArguments = value
 
-			Send(sender, baseAddress + "/userData/" + name, sendArguments)
+			Send(sender, baseAddress + "/userData/" + name, sendArguments, serialiseArguments)
 
 	# send any children also
 	children = object.GetChildren()
 	for child in children:
-		SerialiseObject(sender, baseAddress + "/" + FormatName(child.GetName()), child, splineResolution, reformatCoordinates)
+		SerialiseObject(sender, baseAddress + "/" + FormatName(child.GetName()), child, serialiseArguments)
 	if len(children) is not 0:
-		Send(sender, baseAddress + "/childCount", len(children))
+		Send(sender, baseAddress + "/childCount", len(children), serialiseArguments)
 
 	# send end
-	Send(sender, baseAddress + "/end", [])
+	Send(sender, baseAddress + "/end", [], serialiseArguments)
 	
 class OSCClientObject(plugins.ObjectData):
 	"""OSCClientObject"""
@@ -197,6 +221,7 @@ class OSCClientObject(plugins.ObjectData):
 		data.SetLong(VAR_SplineResolution, 200)
 		data.SetBool(VAR_ReformatCoordinates, True)
 		data.SetBool(VAR_UseSendThread, False)
+		data.SetBool(VAR_ExportEnabled, False)
 		return True
 
 	def GetVirtualObjects(self, op, hierarchyhelp):
@@ -205,28 +230,40 @@ class OSCClientObject(plugins.ObjectData):
 		useThread = data.GetBool(VAR_UseSendThread)
 		newAddress = data.GetString(VAR_Address)
 		newPort = data.GetLong(VAR_Port)
+		splineResolution = data.GetLong(VAR_SplineResolution)
+		reformatCoordinates = data.GetBool(VAR_ReformatCoordinates)
+		exportEnabled = data.GetBool(VAR_ExportEnabled)
+		exportFilename = data.GetFilename(VAR_ExportFilename)
+		exportJson = []
+		serialiseArguments = SerialiseArguments(splineResolution = splineResolution, reformatCoordinates = reformatCoordinates, exportEnabled = exportEnabled, exportJson = exportJson)
 
 		#check if we need to open the thread
 		if self.oscClient is False:
 			#if so open the thread
 			self.oscClient = OSCClientThread()
 			self.oscClient.Start()
-			self.oscClient.checkInitialise(newAddress, newPort, useThread)
+			self.oscClient.checkInitialise(newAddress, newPort, useThread, serialiseArguments)
 			activeThreads.append(self.oscClient)
 
 			print "OSC : Open OSCClient"
 			print "OSC : Active senders ...", activeThreads
 		else:
 			#otherwise update any properties
-			self.oscClient.checkInitialise(newAddress, newPort, useThread)
+			self.oscClient.checkInitialise(newAddress, newPort, useThread, serialiseArguments)
 
 		#send the current frame number
 		doc = op.GetDocument()
 		frame = doc.GetTime().GetFrame(doc.GetFps())
-		Send(self.oscClient, "/frame", int(frame))
+		Send(self.oscClient, "/frame", int(frame), serialiseArguments)
 
 		#send object tree
-		SerialiseObject(self.oscClient, "", op, data.GetLong(VAR_SplineResolution), data.GetBool(VAR_ReformatCoordinates))
+		SerialiseObject(self.oscClient, "", op, serialiseArguments)
+
+		if exportEnabled:
+			jsonTotal = json.loads(open(exportFilename, 'r').read())
+			jsonTotal[int(frame)] = exportJson
+			open(exportFilename, 'w').write(json.dump(jsonTotal))
+			pass
 
 		return None
 
