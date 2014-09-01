@@ -16,5 +16,6 @@ enum {
 	ExportSeparator = 1030,
 	ExportEnabled = 1031,
 	ExportFilename = 1032,
-	ExportNote = 1033
+	ExportNote = 1033,
+	ExportClear = 1034
 };

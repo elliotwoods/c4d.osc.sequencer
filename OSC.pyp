@@ -266,11 +266,23 @@ class OSCClientObject(plugins.ObjectData):
 			except:
 				jsonTotal = {}
 			
-			jsonTotal[frame] = exportJson
+			jsonTotal[int(frame)] = exportJson
 			open(exportFilename, 'w').write(json.dumps(jsonTotal))
 			pass
 
 		return None
+
+	def Message(self, node, type, data):
+		if type is  c4d.MSG_DESCRIPTION_COMMAND:
+			print data['id']
+			if data['id'].__getitem__(0) is VAR_ExportClear or True: # basically only one button, so we can do logic later
+				print data
+				exportFilename = node.GetDataInstance().GetFilename(VAR_ExportFilename)
+				try:
+					open(exportFilename, 'w').write("")
+				except:
+					pass
+		return True
 
 if __name__ == "__main__":
 	bmp = bitmaps.BaseBitmap()

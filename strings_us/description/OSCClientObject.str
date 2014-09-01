@@ -18,4 +18,5 @@ ExportSeperator "Export";
 	ExportEnabled "Export Enabled";
 	ExportFilename "Filename";
 	ExportNote "Export is saved in json format";
+	ExportClear "Clear";
 }
