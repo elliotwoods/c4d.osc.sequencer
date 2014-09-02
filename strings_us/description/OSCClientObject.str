@@ -16,7 +16,7 @@ ExportSeperator "Export";
 
 	ExportSeparator "Export";
 	ExportEnabled "Export Enabled";
-	ExportFilename "Filename";
-	ExportNote "Export is saved in json format";
+	ExportFilename "Filename (json)";
+	ExportNote "Play once through (without loop) from frame 0 to end.";
 	ExportClear "Clear";
 }

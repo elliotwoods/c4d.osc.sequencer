@@ -261,10 +261,12 @@ class OSCClientObject(plugins.ObjectData):
 		SerialiseObject(self.oscClient, "", op, serialiseArguments)
 
 		if exportEnabled:
-			try:
-				jsonTotal = json.loads(open(exportFilename, 'r').read())
-			except:
-				jsonTotal = {}
+			jsonTotal = {}
+			if frame is not 0:
+				try:
+					jsonTotal = json.loads(open(exportFilename, 'r').read())
+				except:
+					pass
 			
 			jsonTotal[int(frame)] = exportJson
 			open(exportFilename, 'w').write(json.dumps(jsonTotal))
@@ -274,7 +276,6 @@ class OSCClientObject(plugins.ObjectData):
 
 	def Message(self, node, type, data):
 		if type is  c4d.MSG_DESCRIPTION_COMMAND:
-			print data['id']
 			if data['id'].__getitem__(0) is VAR_ExportClear or True: # basically only one button, so we can do logic later
 				print data
 				exportFilename = node.GetDataInstance().GetFilename(VAR_ExportFilename)
@@ -293,12 +294,15 @@ if __name__ == "__main__":
 	if not result:
 		print "Error loading bitmap icon"
 	
-	result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_GENERATOR | c4d.OBJECT_INPUT, g=OSCClientObject, description="OSCClientObject", icon=bmp)
+	result = plugins.RegisterObjectPlugin(id=1032063, str="OSC Client", info=c4d.OBJECT_GENERATOR, g=OSCClientObject, description="OSCClientObject", icon=bmp)
 	
-	gitCommitFilename = os.path.join(dir, "res", "git_commit.txt")
-	gitCommitFile = open(gitCommitFilename, 'r')
+	try:
+		gitCommitFilename = os.path.join(dir, "res", "git_commit.txt")
+		gitCommitFile = open(gitCommitFilename, 'r')
 
-	print "OSC plugin initialised build: ", gitCommitFile.read()
+		print "OSC plugin initialised build: ", gitCommitFile.read()
+	except:
+		print "OSC plugin initialised"
 
 
 
