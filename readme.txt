@@ -6,9 +6,8 @@ where --versionnnumber-- corresponds to your local folder name
 
 download
 
-http://www.kimchiandchips.com/files/python-osc-packages.zip
+https://drive.google.com/open?id=0B_S1z3_AWMRScTlDcGNKLXhEdlU&authuser=0
 
 and unzip into
 
 ~/Library/Preferences/MAXON/CINEMA 4D--versionnnumber--/library/python/packages/osx
-
